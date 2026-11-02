@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f5f7">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="实时追踪 RTX 40 与 RTX 50 系列主流显卡市场行情。">
+  <title>显卡价格趋势监控</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --page: #f5f5f7;
+      --surface: #ffffff;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-tertiary: #86868b;
+      --line: rgba(0, 0, 0, 0.06);
+      --line-soft: rgba(0, 0, 0, 0.035);
+      --blue: #0071e3;
+      --warning: #8a5a00;
+      --warning-bg: #fff8e8;
+      --warning-line: #f2e4c2;
+      --font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.025),
+        0 10px 30px rgba(0, 0, 0, 0.035);
+      --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.025),
+        0 16px 42px rgba(0, 0, 0, 0.055);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      min-width: 320px;
+      color-scheme: light;
+      background: var(--page);
+      scrollbar-color: #c7c7cc transparent;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background:
+        linear-gradient(180deg, #fbfbfd 0, var(--page) 300px, var(--page) 100%);
+    }
+
+    ::selection {
+      color: var(--text);
+      background: rgba(0, 113, 227, 0.12);
+    }
+
+    .shell {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 34px 24px 30px;
+    }
+
+    .hero {
+      max-width: 940px;
+      padding: clamp(48px, 8vw, 92px) 2px 0;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.035em;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    h1 {
+      max-width: 900px;
+      margin: 18px 0 20px;
+      color: var(--text);
+      font-size: clamp(2.35rem, 5.8vw, 4.5rem);
+      font-weight: 600;
+      line-height: 1.06;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-copy {
+      max-width: 620px;
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: clamp(1rem, 1.7vw, 1.125rem);
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: clamp(38px, 6vw, 56px) 0 16px;
+    }
+
+    .metric {
+      min-height: 140px;
+      padding: 23px 24px 21px;
+      border: 1px solid var(--line-soft);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+      transition: transform 220ms ease, box-shadow 220ms ease;
+    }
+
+    .metric:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+
+    .metric-label {
+      display: block;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.35;
+      letter-spacing: 0.01em;
+    }
+
+    .metric-value {
+      display: block;
+      margin-top: 16px;
+      overflow: hidden;
+      color: var(--text);
+      font-size: clamp(1.42rem, 2.8vw, 1.85rem);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .metric-note {
+      display: block;
+      margin-top: 8px;
+      overflow: hidden;
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chart-card {
+      padding: 28px clamp(18px, 3vw, 32px) 16px;
+      border: 1px solid var(--line-soft);
+      border-radius: 26px;
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 4px 14px;
+    }
+
+    .chart-kicker {
+      margin: 0 0 8px;
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .chart-head h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(1.08rem, 2vw, 1.3rem);
+      font-weight: 600;
+      line-height: 1.35;
+      letter-spacing: -0.02em;
+    }
+
+    .source-badge {
+      flex: 0 0 auto;
+      padding: 7px 11px;
+      border: 1px solid #ececf0;
+      border-radius: 999px;
+      color: var(--text-secondary);
+      background: var(--page);
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .source-badge[data-simulated="true"] {
+      border-color: var(--warning-line);
+      color: var(--warning);
+      background: var(--warning-bg);
+    }
+
+    .chart-legend {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 11px 22px;
+      margin: 0 4px;
+      padding: 16px 0 20px;
+      border-top: 1px solid #f2f2f4;
+    }
+
+    .chart-legend:empty { display: none; }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .legend-swatch {
+      width: 18px;
+      height: 3px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--series-color);
+    }
+
+    .legend-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .legend-price {
+      margin-left: auto;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    #priceChart {
+      width: 100%;
+      height: 520px;
+      min-height: 340px;
+    }
+
+    .chart-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 43px;
+      padding: 12px 4px 1px;
+      border-top: 1px solid #f2f2f4;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .chart-status[data-state="loading"] .status-dot {
+      animation: soften 1.5s ease-in-out infinite;
+    }
+
+    .chart-status[data-state="error"] {
+      color: #b42318;
+    }
+
+    .chart-status[data-state="error"] .status-dot {
+      background: #b42318;
+    }
+
+    footer {
+      margin-top: 16px;
+      padding: 34px 16px 18px;
+      border-top: 1px solid #ececf0;
+      text-align: center;
+    }
+
+    .footer-heading {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+    }
+
+    .footer-text {
+      max-width: 720px;
+      margin: 0 auto;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1.8;
+      letter-spacing: -0.005em;
+    }
+
+    @keyframes soften {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 1; }
+    }
+
+    @media (max-width: 860px) {
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .shell { padding: 22px 16px 24px; }
+      .hero { padding-top: 40px; }
+      .metric { min-height: 128px; padding: 19px 18px 17px; border-radius: 17px; }
+      .metric-value { margin-top: 13px; }
+      .chart-card { padding: 22px 14px 12px; border-radius: 21px; }
+      .chart-head { flex-direction: column; gap: 12px; }
+      .chart-legend { gap: 10px 14px; padding: 14px 0 18px; }
+      #priceChart { height: 430px; }
+      footer { padding-top: 30px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">GPU Market Overview · 30-Day Tracker</p>
+      <h1>显卡价格趋势监控</h1>
+      <p class="hero-copy">实时追踪主流显卡市场行情</p>
+    </header>
+
+    <section class="metrics" aria-label="显卡价格摘要">
+      <article class="metric">
+        <span class="metric-label">今日最低 / Lowest Today</span>
+        <strong class="metric-value" id="lowestToday">¥—</strong>
+        <span class="metric-note" id="lowestModel">—</span>
+      </article>
+      <article class="metric">
+        <span class="metric-label">旗舰报价 / Flagship</span>
+        <strong class="metric-value" id="flagshipPrice">¥—</strong>
+        <span class="metric-note">RTX 5090</span>
+      </article>
+      <article class="metric">
+        <span class="metric-label">监控型号 / Models</span>
+        <strong class="metric-value" id="modelCount">—</strong>
+        <span class="metric-note">RTX 40 / 50 系列</span>
+      </article>
+      <article class="metric">
+        <span class="metric-label">历史周期 / Window</span>
+        <strong class="metric-value" id="historyWindow">—</strong>
+        <span class="metric-note" id="historyRange">—</span>
+      </article>
+    </section>
+
+    <section class="chart-card" aria-labelledby="chartTitle">
+      <div class="chart-head">
+        <div>
+          <p class="chart-kicker">Price Comparison</p>
+          <h2 id="chartTitle">RTX 40 / 50 系列价格走势</h2>
+        </div>
+        <span class="source-badge" id="sourceBadge">数据源：读取中</span>
+      </div>
+      <div class="chart-legend" id="chartLegend" aria-label="显卡价格图例"></div>
+      <div id="priceChart" role="img" aria-label="RTX 40 与 RTX 50 系列历史价格折线图"></div>
+      <div class="chart-status" id="chartStatus" data-state="loading" aria-live="polite">
+        <span class="status-dot"></span>
+        <span id="statusText">正在读取 30 天显卡价格数据 ...</span>
+      </div>
+    </section>
+
+    <footer>
+      <h2 class="footer-heading">🤝 交流与指教</h2>
+      <p class="footer-text">项目还在不断摸索中。如果发现任何 Bug，或者有更好的技术方案、想法，非常欢迎随时告诉我，我会虚心学习并改进。期待你的指教！</p>
+    </footer>
+  </main>
+
+  <script>
+    const MODEL_STYLES = [
+      { name: "RTX 4060", color: "#6F8FAF" },
+      { name: "RTX 4070", color: "#557A95" },
+      { name: "RTX 4080", color: "#3C5A78" },
+      { name: "RTX 4090", color: "#263E55" },
+      { name: "RTX 5060", color: "#C2A878" },
+      { name: "RTX 5070", color: "#A8825F" },
+      { name: "RTX 5080", color: "#8A6354" },
+      { name: "RTX 5090", color: "#644C49" }
+    ];
+    const MODEL_ORDER = new Map(MODEL_STYLES.map((model, index) => [model.name, index]));
+    const MODEL_COLORS = new Map(MODEL_STYLES.map((model) => [model.name, model.color]));
+    const chartElement = document.getElementById("priceChart");
+    const chartLegend = document.getElementById("chartLegend");
+    const chartTitleElement = document.getElementById("chartTitle");
+    const sourceBadge = document.getElementById("sourceBadge");
+    const statusElement = document.getElementById("chartStatus");
+    const statusText = document.getElementById("statusText");
+    const lowestTodayElement = document.getElementById("lowestToday");
+    const lowestModelElement = document.getElementById("lowestModel");
+    const flagshipPriceElement = document.getElementById("flagshipPrice");
+    const modelCountElement = document.getElementById("modelCount");
+    const historyWindowElement = document.getElementById("historyWindow");
+    const historyRangeElement = document.getElementById("historyRange");
+    const priceFormatter = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 });
+    const fontFamily = '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+    let chart = null;
+
+    function setStatus(message, state) {
+      statusText.textContent = message;
+      statusElement.dataset.state = state;
+    }
+
+    function formatPrice(value) {
+      return `¥${priceFormatter.format(Number(value))}`;
+    }
+
+    function formatAxisPrice(value) {
+      if (value >= 10000) {
+        const suffix = value % 10000 === 0 ? 0 : 1;
+        return `¥${(value / 10000).toFixed(suffix)}万`;
+      }
+      return `¥${priceFormatter.format(value)}`;
+    }
+
+    function formatShortDate(value) {
+      return value.slice(5).replace("-", ".");
+    }
+
+    function normalizeRecords(payload) {
+      if (!Array.isArray(payload)) {
+        throw new Error("gpu_price_history.json 必须是 JSON 数组。");
+      }
+
+      const validRecords = payload.filter((item) => (
+        item
+        && typeof item.date === "string"
+        && /^\d{4}-\d{2}-\d{2}$/.test(item.date)
+        && typeof item.product === "string"
+        && item.product.trim()
+        && Number.isFinite(Number(item.price))
+        && Number(item.price) > 0
+      ));
+
+      if (!validRecords.length) {
+        throw new Error("JSON 中没有有效的日期和价格记录。");
+      }
+
+      const recordsByKey = new Map();
+      validRecords.forEach((item) => {
+        const record = {
+          date: item.date,
+          product: item.product.trim(),
+          price: Number(item.price),
+          source: typeof item.source === "string" && item.source.trim() ? item.source : "未知来源"
+        };
+        recordsByKey.set(`${record.date}|${record.product}`, record);
+      });
+
+      return Array.from(recordsByKey.values()).sort((a, b) => (
+        a.date.localeCompare(b.date)
+        || (MODEL_ORDER.get(a.product) ?? 999) - (MODEL_ORDER.get(b.product) ?? 999)
+        || a.product.localeCompare(b.product)
+      ));
+    }
+
+    function getProducts(records) {
+      const available = new Set(records.map((record) => record.product));
+      const knownProducts = MODEL_STYLES.map((model) => model.name).filter((name) => available.has(name));
+      const unknownProducts = Array.from(available)
+        .filter((name) => !MODEL_ORDER.has(name))
+        .sort((a, b) => a.localeCompare(b));
+      return [...knownProducts, ...unknownProducts];
+    }
+
+    function renderLegend(products, latestByProduct) {
+      chartLegend.replaceChildren();
+      products.forEach((product) => {
+        const item = document.createElement("div");
+        item.className = "legend-item";
+
+        const swatch = document.createElement("span");
+        swatch.className = "legend-swatch";
+        swatch.style.setProperty("--series-color", MODEL_COLORS.get(product) || "#8e8e93");
+
+        const name = document.createElement("span");
+        name.className = "legend-name";
+        name.textContent = product;
+
+        const price = document.createElement("span");
+        price.className = "legend-price";
+        const latest = latestByProduct.get(product);
+        price.textContent = latest ? formatPrice(latest.price) : '—';
+
+        item.append(swatch, name, price);
+        chartLegend.append(item);
+      });
+    }
+
+    function buildChartOption(records) {
+      const dates = Array.from(new Set(records.map((record) => record.date))).sort();
+      const products = getProducts(records);
+      const pricesByKey = new Map(records.map((record) => [`${record.date}|${record.product}`, record.price]));
+      const allPrices = records.map((record) => record.price);
+      const minimum = Math.min(...allPrices);
+      const maximum = Math.max(...allPrices);
+      const padding = Math.max(500, (maximum - minimum) * 0.08);
+      const yMin = Math.max(0, Math.floor((minimum - padding) / 500) * 500);
+      const yMax = Math.ceil((maximum + padding) / 500) * 500;
+
+      const series = products.map((product) => {
+        const color = MODEL_COLORS.get(product) || "#8e8e93";
+        return {
+          name: product,
+          type: "line",
+          smooth: 0.32,
+          showSymbol: false,
+          symbol: "circle",
+          symbolSize: 6,
+          connectNulls: false,
+          data: dates.map((dateValue) => pricesByKey.get(`${dateValue}|${product}`) ?? null),
+          lineStyle: {
+            color,
+            width: product === "RTX 5090" ? 2.7 : 2.2
+          },
+          itemStyle: {
+            color,
+            borderColor: "#ffffff",
+            borderWidth: 1.5
+          },
+          emphasis: {
+            focus: "series",
+            lineStyle: { width: 3.2 },
+            itemStyle: { borderWidth: 2 }
+          }
+        };
+      });
+
+      return {
+        animationDuration: 900,
+        animationDurationUpdate: 420,
+        animationEasing: "cubicOut",
+        textStyle: { fontFamily },
+        tooltip: {
+          trigger: "axis",
+          confine: true,
+          backgroundColor: "#ffffff",
+          borderColor: "#e5e5e7",
+          borderWidth: 1,
+          padding: [13, 15],
+          textStyle: {
+            color: "#1d1d1f",
+            fontSize: 12,
+            fontFamily
+          },
+          axisPointer: {
+            type: "line",
+            lineStyle: { color: "#c7c7cc", type: "dashed", width: 1 }
+          },
+          formatter: (params) => {
+            const sorted = [...params]
+              .filter((item) => item.value !== null && item.value !== undefined)
+              .sort((a, b) => Number(b.value) - Number(a.value));
+            if (!sorted.length) return "";
+            const rows = sorted.map((item) => (
+              `<div style="display:flex;align-items:center;gap:9px;min-width:210px;margin-top:7px;">`
+              + `${item.marker}<span style="flex:1;color:#6e6e73;">${item.seriesName}</span>`
+              + `<strong style="font-variant-numeric:tabular-nums;color:#1d1d1f;font-weight:600;">${formatPrice(item.value)}</strong>`
+              + `</div>`
+            )).join("");
+            return `<div style="font-weight:600;color:#1d1d1f;">${sorted[0].axisValue}</div>${rows}`;
+          },
+          extraCssText: "border-radius: 12px; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.09);"
+        },
+        grid: {
+          left: 4,
+          right: 24,
+          top: 20,
+          bottom: 10,
+          containLabel: true
+        },
+        xAxis: {
+          type: "category",
+          boundaryGap: false,
+          data: dates,
+          axisLine: { lineStyle: { color: "#e5e5e7" } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: "#86868b",
+            fontFamily,
+            fontSize: 11,
+            margin: 16,
+            interval: "auto",
+            formatter: formatShortDate
+          }
+        },
+        yAxis: {
+          type: "value",
+          min: yMin,
+          max: yMax,
+          splitNumber: 5,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: "#86868b",
+            fontFamily,
+            fontSize: 11,
+            formatter: formatAxisPrice
+          },
+          splitLine: {
+            lineStyle: { color: "#ececf0", type: "dashed", width: 1 }
+          }
+        },
+        series
+      };
+    }
+
+    function renderSummary(records) {
+      const dates = Array.from(new Set(records.map((record) => record.date))).sort();
+      const latestDate = dates.at(-1);
+      const latestRecords = records.filter((record) => record.date === latestDate);
+      const products = getProducts(records);
+      const latestByProduct = new Map(latestRecords.map((record) => [record.product, record]));
+      const lowest = [...latestRecords].sort((a, b) => a.price - b.price)[0];
+      const flagship = latestByProduct.get("RTX 5090")
+        || [...latestRecords].sort((a, b) => b.price - a.price)[0];
+      const latestSource = latestRecords.at(-1).source;
+
+      lowestTodayElement.textContent = formatPrice(lowest.price);
+      lowestModelElement.textContent = lowest.product;
+      flagshipPriceElement.textContent = formatPrice(flagship.price);
+      modelCountElement.textContent = `${products.length} 款`;
+      historyWindowElement.textContent = `${dates.length} 天`;
+      historyRangeElement.textContent = `${formatShortDate(dates[0])} — ${formatShortDate(latestDate)}`;
+      chartTitleElement.textContent = `RTX 40 / 50 系列 ${dates.length} 天价格走势`;
+      sourceBadge.textContent = `数据源：${latestSource}`;
+      sourceBadge.dataset.simulated = String(latestSource.includes("模拟"));
+
+      renderLegend(products, latestByProduct);
+      return { dates, latestDate, products };
+    }
+
+    function renderEmptyChart() {
+      if (!chart) return;
+
+      chart.setOption({
+        title: {
+          text: "NO DATA",
+          subtext: "等待价格数据接入",
+          left: "center",
+          top: "43%",
+          textStyle: {
+            color: "#c7c7cc",
+            fontSize: 17,
+            fontFamily,
+            fontWeight: 600
+          },
+          subtextStyle: {
+            color: "#86868b",
+            fontSize: 12,
+            fontFamily,
+            lineHeight: 24
+          }
+        }
+      }, true);
+    }
+
+    async function loadPriceHistory() {
+      if (typeof echarts === "undefined") {
+        throw new Error("ECharts CDN 加载失败，请检查网络连接。");
+      }
+
+      chart = echarts.init(chartElement, null, { renderer: "canvas" });
+      chart.showLoading("default", {
+        text: "读取 30 天价格轨迹...",
+        color: "#0071e3",
+        textColor: "#6e6e73",
+        maskColor: "rgba(255, 255, 255, 0.72)"
+      });
+
+      window.addEventListener("resize", () => chart.resize());
+
+      const response = await fetch("./gpu_price_history.json", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`读取 gpu_price_history.json 失败（HTTP ${response.status}）。`);
+      }
+
+      const records = normalizeRecords(await response.json());
+      const summary = renderSummary(records);
+      chart.hideLoading();
+      chart.setOption(buildChartOption(records), true);
+      setStatus(
+        `已同步 ${summary.dates.length} 天 · ${summary.products.length} 款显卡 · 最新 ${summary.latestDate}`,
+        "ready"
+      );
+    }
+
+    loadPriceHistory().catch((error) => {
+      if (chart) {
+        chart.hideLoading();
+        renderEmptyChart();
+      }
+
+      const hint = window.location.protocol === "file:"
+        ? "请在当前目录运行 python -m http.server 8000，然后访问 http://localhost:8000/"
+        : "请检查 JSON 文件是否存在且格式正确。";
+      setStatus(`${error.message} ${hint}`, "error");
+    });
+  </script>
+</body>
+</html>
