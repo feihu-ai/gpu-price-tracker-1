@@ -1,0 +1,41 @@
+name: Update GPU Prices
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Update GPU prices
+        run: python get_gpu_price.py
+
+      - name: Commit and push price history
+        run: |
+          if [ -z "$(git status --porcelain -- gpu_price_history.json)" ]; then
+            echo "No price changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gpu_price_history.json
+          git commit -m "chore: update GPU price history"
+          git push
