@@ -13,6 +13,8 @@
 - **自动化部署**：GitHub Actions
 
 ## 🚀 如何访问
+<img width="1023" height="688" alt="image" src="https://github.com/user-attachments/assets/a4753d5a-7f20-480f-a88c-fb1e95792a39" />
+
 直接点击下方链接即可在线查看（无需安装任何软件）：
 👉 **[点击这里查看在线演示](https://feihu-ai.github.io/gpu-price-tracker-1/)**
 
