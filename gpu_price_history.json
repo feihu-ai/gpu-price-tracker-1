@@ -1699,5 +1699,12 @@
     "price": 13368.07,
     "currency": "CNY",
     "source": "open.er-api.com"
+  },
+  {
+    "date": "2026-11-06",
+    "product": "RTX 5090",
+    "price": 13370.84,
+    "currency": "CNY",
+    "source": "open.er-api.com"
   }
 ]
